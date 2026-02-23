@@ -66,6 +66,13 @@ namespace RunCat365
         private FPSMaxLimit fpsMaxLimit = FPSMaxLimit.FPS40;
         private SpeedSource speedSource = SpeedSource.CPU;
         private int fetchCounter = 5;
+        private int _fetchRunning = 0;
+
+        private readonly record struct FetchSnapshot(
+            string NotifyText,
+            string SystemInfoMenuText,
+            int AnimateIntervalMs
+        );
 
         public RunCat365ApplicationContext()
         {
@@ -245,15 +252,22 @@ namespace RunCat365
             return (int)(500.0f / speed);
         }
 
-        private int FetchSystemInfo()
+        private FetchSnapshot? BuildFetchSnapshot()
         {
+            cpuRepository.Update();
+            if (speedSource == SpeedSource.GPU)
+                gpuRepository.Update();
+            fetchCounter += 1;
+            if (fetchCounter < FETCH_COUNTER_SIZE) return null;
+            fetchCounter = 0;
+
             var cpuInfo = cpuRepository.Get();
             var gpuInfo = gpuRepository.Get();
             var memoryInfo = memoryRepository.Get();
             var storageInfo = storageRepository.Get();
             var networkInfo = networkRepository.Get();
 
-            contextMenuManager.SetNotifyIconText(GetInfoDescription(cpuInfo, gpuInfo, memoryInfo));
+            var notifyText = GetInfoDescription(cpuInfo, gpuInfo, memoryInfo);
 
             var systemInfoValues = new List<string>();
             systemInfoValues.AddRange(cpuInfo.GenerateIndicator());
@@ -264,22 +278,35 @@ namespace RunCat365
             systemInfoValues.AddRange(memoryInfo.GenerateIndicator());
             systemInfoValues.AddRange(storageInfo.GenerateIndicator());
             systemInfoValues.AddRange(networkInfo.GenerateIndicator());
-            contextMenuManager.SetSystemInfoMenuText(string.Join("\n", [.. systemInfoValues]));
+            var menuText = string.Join("\n", [.. systemInfoValues]);
 
-            return CalculateInterval(cpuInfo, gpuInfo, memoryInfo);
+            return new FetchSnapshot(notifyText, menuText, CalculateInterval(cpuInfo, gpuInfo, memoryInfo));
         }
 
-        private void FetchTick(object? state, EventArgs e)
+        private async void FetchTick(object? sender, EventArgs e)
         {
-            cpuRepository.Update();
-            gpuRepository.Update();
-            fetchCounter += 1;
-            if (fetchCounter < FETCH_COUNTER_SIZE) return;
-            fetchCounter = 0;
-            var interval = FetchSystemInfo();
-            animateTimer.Stop();
-            animateTimer.Interval = interval;
-            animateTimer.Start();
+            if (Interlocked.Exchange(ref _fetchRunning, 1) == 1) return;
+            try
+            {
+                var snapshot = await Task.Run(BuildFetchSnapshot);
+                if (snapshot is not null)
+                {
+                    contextMenuManager.SetNotifyIconText(snapshot.Value.NotifyText);
+                    contextMenuManager.SetSystemInfoMenuText(snapshot.Value.SystemInfoMenuText);
+                    var clampedInterval = Math.Clamp(snapshot.Value.AnimateIntervalMs, 50, 1000);
+                    animateTimer.Stop();
+                    animateTimer.Interval = clampedInterval;
+                    animateTimer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _fetchRunning, 0);
+            }
         }
 
         protected override void Dispose(bool disposing)
