@@ -1,4 +1,4 @@
-﻿// Copyright 2020 Takuto Nakamura
+// Copyright 2020 Takuto Nakamura
 //
 //    Licensed under the Apache License, Version 2.0 (the "License");
 //    you may not use this file except in compliance with the License.
@@ -26,11 +26,13 @@ namespace RunCat365
         static void Main()
         {
 #if DEBUG
-            // Specify language manually.
-            CultureInfo.CurrentUICulture = SupportedLanguage.English.GetDefaultCultureInfo();
+            var defaultCultureInfo = SupportedLanguage.English.GetDefaultCultureInfo();
+#else
+            var defaultCultureInfo = SupportedLanguageExtension.GetCurrentLanguage().GetDefaultCultureInfo();
 #endif
+            CultureInfo.CurrentUICulture = defaultCultureInfo;
+            CultureInfo.CurrentCulture = defaultCultureInfo;
 
-            // Terminate RunCat365 if there's any existing instance.
             using var procMutex = new Mutex(true, "_RUNCAT_MUTEX", out var result);
             if (!result) return;
 
@@ -55,22 +57,32 @@ namespace RunCat365
         private readonly CPURepository cpuRepository;
         private readonly GPURepository gpuRepository;
         private readonly MemoryRepository memoryRepository;
+        private readonly TemperatureRepository temperatureRepository;
         private readonly StorageRepository storageRepository;
         private readonly NetworkRepository networkRepository;
+        private readonly CustomRunnerRepository customRunnerRepository;
         private readonly LaunchAtStartupManager launchAtStartupManager;
         private readonly ContextMenuManager contextMenuManager;
         private readonly FormsTimer fetchTimer;
         private readonly FormsTimer animateTimer;
+        private readonly Lock repositoryLock = new();
+        private readonly List<string> systemInfoValues = new(24);
         private Runner runner = Runner.Cat;
         private Theme manualTheme = Theme.System;
+        private Theme lastSystemTheme;
+        private TemperatureUnit temperatureUnit = TemperatureUnit.System;
         private FPSMaxLimit fpsMaxLimit = FPSMaxLimit.FPS40;
         private SpeedSource speedSource = SpeedSource.CPU;
-        private int fetchCounter = 5;
+        private string? customRunnerName;
+        private int fetchCounter = FETCH_COUNTER_SIZE;
         private int _fetchRunning = 0;
+        private int _menuRefreshRunning = 0;
+        private bool hasInitialGpuSample;
+        private volatile bool isDisposed;
 
         private readonly record struct FetchSnapshot(
             string NotifyText,
-            string SystemInfoMenuText,
+            string? SystemInfoMenuText,
             int AnimateIntervalMs
         );
 
@@ -79,23 +91,34 @@ namespace RunCat365
             UserSettings.Default.Reload();
             _ = Enum.TryParse(UserSettings.Default.Runner, out runner);
             _ = Enum.TryParse(UserSettings.Default.Theme, out manualTheme);
+            _ = Enum.TryParse(UserSettings.Default.TemperatureUnit, out temperatureUnit);
             _ = Enum.TryParse(UserSettings.Default.FPSMaxLimit, out fpsMaxLimit);
             _ = Enum.TryParse(UserSettings.Default.SpeedSource, out speedSource);
+            customRunnerName = string.IsNullOrEmpty(UserSettings.Default.CustomRunnerName)
+                ? null
+                : UserSettings.Default.CustomRunnerName;
 
             SystemEvents.UserPreferenceChanged += new UserPreferenceChangedEventHandler(UserPreferenceChanged);
 
             cpuRepository = new CPURepository();
             gpuRepository = new GPURepository();
             memoryRepository = new MemoryRepository();
+            temperatureRepository = new TemperatureRepository();
             storageRepository = new StorageRepository();
             networkRepository = new NetworkRepository();
+            customRunnerRepository = new CustomRunnerRepository();
             launchAtStartupManager = new LaunchAtStartupManager();
 
             ResolveSpeedSource();
+            lastSystemTheme = GetSystemTheme();
 
             contextMenuManager = new ContextMenuManager(
                 () => runner,
                 r => ChangeRunner(r),
+                customRunnerRepository,
+                () => customRunnerName,
+                name => ApplyCustomRunner(name),
+                deletedName => HandleCustomRunnerDeleted(deletedName),
                 () => GetSystemTheme(),
                 () => manualTheme,
                 t => ChangeManualTheme(t),
@@ -104,11 +127,19 @@ namespace RunCat365
                 s => IsSpeedSourceAvailable(s),
                 () => fpsMaxLimit,
                 f => ChangeFPSMaxLimit(f),
+                () => temperatureUnit,
+                u => ChangeTemperatureUnit(u),
                 () => launchAtStartupManager.GetStartup(),
-                s => launchAtStartupManager.SetStartup(s),
-                () => OpenRepository(),
+                s => launchAtStartupManager.ToggleStartup(s),
+                () => OpenProjectPage(),
                 () => Application.Exit()
             );
+            contextMenuManager.ContextMenuOpening += OnContextMenuOpening;
+
+            if (customRunnerName is not null)
+            {
+                ApplyCustomRunner(customRunnerName);
+            }
 
             animateTimer = new FormsTimer
             {
@@ -172,20 +203,28 @@ namespace RunCat365
 
         private void UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs e)
         {
-            if (e.Category == UserPreferenceCategory.General)
+            if (e.Category != UserPreferenceCategory.General) return;
+            var systemTheme = GetSystemTheme();
+            if (systemTheme == lastSystemTheme) return;
+            lastSystemTheme = systemTheme;
+            if (manualTheme != Theme.System) return;
+            if (contextMenuManager.HasActiveCustomIcons)
             {
-                var systemTheme = GetSystemTheme();
+                contextMenuManager.RecolorActiveCustomIcons(systemTheme, manualTheme);
+            }
+            else
+            {
                 contextMenuManager.SetIcons(systemTheme, manualTheme, runner);
             }
         }
 
-        private static void OpenRepository()
+        private static void OpenProjectPage()
         {
             try
             {
                 Process.Start(new ProcessStartInfo()
                 {
-                    FileName = "https://github.com/Kyome22/RunCat365.git",
+                    FileName = "https://github.com/runcat-dev/RunCat365",
                     UseShellExecute = true
                 });
             }
@@ -198,8 +237,35 @@ namespace RunCat365
         private void ChangeRunner(Runner r)
         {
             runner = r;
+            customRunnerName = null;
             UserSettings.Default.Runner = runner.ToString();
+            UserSettings.Default.CustomRunnerName = string.Empty;
             UserSettings.Default.Save();
+        }
+
+        private void ApplyCustomRunner(string name)
+        {
+            var frames = customRunnerRepository.LoadFrames(name);
+            if (frames.Count == 0) return;
+            customRunnerName = name;
+            UserSettings.Default.CustomRunnerName = name;
+            UserSettings.Default.Save();
+            contextMenuManager.SetCustomIcons(frames, GetSystemTheme(), manualTheme);
+            foreach (var frame in frames) frame.Dispose();
+        }
+
+        private void RevertToBuiltInRunner()
+        {
+            customRunnerName = null;
+            UserSettings.Default.CustomRunnerName = string.Empty;
+            UserSettings.Default.Save();
+            contextMenuManager.SetIcons(GetSystemTheme(), manualTheme, runner);
+        }
+
+        private void HandleCustomRunnerDeleted(string deletedName)
+        {
+            if (!string.Equals(customRunnerName, deletedName, StringComparison.OrdinalIgnoreCase)) return;
+            RevertToBuiltInRunner();
         }
 
         private void ChangeManualTheme(Theme t)
@@ -209,9 +275,18 @@ namespace RunCat365
             UserSettings.Default.Save();
         }
 
+        private void ChangeTemperatureUnit(TemperatureUnit u)
+        {
+            temperatureUnit = u;
+            fetchCounter = FETCH_COUNTER_SIZE;
+            UserSettings.Default.TemperatureUnit = temperatureUnit.ToString();
+            UserSettings.Default.Save();
+        }
+
         private void ChangeSpeedSource(SpeedSource s)
         {
             speedSource = s;
+            fetchCounter = FETCH_COUNTER_SIZE;
             UserSettings.Default.SpeedSource = speedSource.ToString();
             UserSettings.Default.Save();
         }
@@ -219,6 +294,7 @@ namespace RunCat365
         private void ChangeFPSMaxLimit(FPSMaxLimit f)
         {
             fpsMaxLimit = f;
+            fetchCounter = FETCH_COUNTER_SIZE;
             UserSettings.Default.FPSMaxLimit = fpsMaxLimit.ToString();
             UserSettings.Default.Save();
         }
@@ -228,72 +304,240 @@ namespace RunCat365
             contextMenuManager.AdvanceFrame();
         }
 
-        private string GetInfoDescription(CPUInfo cpuInfo, GPUInfo? gpuInfo, MemoryInfo memoryInfo)
+        private static string GetInfoDescription(
+            SpeedSource currentSpeedSource,
+            TemperatureUnit currentTemperatureUnit,
+            CPUInfo cpuInfo,
+            GPUInfo? gpuInfo,
+            MemoryInfo memoryInfo,
+            TemperatureInfo? temperatureInfo
+        )
         {
-            return speedSource switch
+            var baseDescription = currentSpeedSource switch
             {
                 SpeedSource.CPU => cpuInfo.GetDescription(),
                 SpeedSource.GPU => gpuInfo?.GetDescription() ?? "",
                 SpeedSource.Memory => memoryInfo.GetDescription(),
                 _ => "",
             };
+
+            var temperatureDescription = temperatureInfo?.GetDescription(currentTemperatureUnit) ?? "";
+            return string.IsNullOrEmpty(temperatureDescription) ? baseDescription : $"{baseDescription}\n{temperatureDescription}";
         }
 
-        private int CalculateInterval(CPUInfo cpuInfo, GPUInfo? gpuInfo, MemoryInfo memoryInfo)
+        private static int CalculateInterval(
+            SpeedSource currentSpeedSource,
+            FPSMaxLimit currentFpsMaxLimit,
+            CPUInfo cpuInfo,
+            GPUInfo? gpuInfo,
+            MemoryInfo memoryInfo
+        )
         {
-            var load = speedSource switch
+            var load = currentSpeedSource switch
             {
                 SpeedSource.CPU => cpuInfo.Total,
                 SpeedSource.GPU => gpuInfo?.Maximum ?? 0f,
                 SpeedSource.Memory => memoryInfo.MemoryLoad,
                 _ => 0f,
             };
-            var speed = (float)Math.Max(1.0f, (load / 5.0f) * fpsMaxLimit.GetRate());
+            var speed = (float)Math.Max(1.0f, (load / 5.0f) * currentFpsMaxLimit.GetRate());
             return (int)(500.0f / speed);
         }
 
-        private FetchSnapshot? BuildFetchSnapshot()
+        private string BuildSystemInfoMenuText(
+            TemperatureUnit currentTemperatureUnit,
+            CPUInfo cpuInfo,
+            GPUInfo? gpuInfo,
+            MemoryInfo memoryInfo,
+            TemperatureInfo? temperatureInfo,
+            List<StorageInfo> storageInfo,
+            NetworkInfo? networkInfo
+        )
         {
-            cpuRepository.Update();
-            if (speedSource == SpeedSource.GPU)
-                gpuRepository.Update();
-            fetchCounter += 1;
-            if (fetchCounter < FETCH_COUNTER_SIZE) return null;
-            fetchCounter = 0;
-
-            var cpuInfo = cpuRepository.Get();
-            var gpuInfo = gpuRepository.Get();
-            var memoryInfo = memoryRepository.Get();
-            var storageInfo = storageRepository.Get();
-            var networkInfo = networkRepository.Get();
-
-            var notifyText = GetInfoDescription(cpuInfo, gpuInfo, memoryInfo);
-
-            var systemInfoValues = new List<string>();
+            systemInfoValues.Clear();
             systemInfoValues.AddRange(cpuInfo.GenerateIndicator());
             if (gpuInfo.HasValue)
             {
                 systemInfoValues.AddRange(gpuInfo.Value.GenerateIndicator());
             }
             systemInfoValues.AddRange(memoryInfo.GenerateIndicator());
+            if (temperatureInfo.HasValue)
+            {
+                systemInfoValues.AddRange(temperatureInfo.Value.GenerateIndicator(currentTemperatureUnit));
+            }
             systemInfoValues.AddRange(storageInfo.GenerateIndicator());
-            systemInfoValues.AddRange(networkInfo.GenerateIndicator());
-            var menuText = string.Join("\n", [.. systemInfoValues]);
+            if (networkInfo.HasValue)
+            {
+                systemInfoValues.AddRange(networkInfo.Value.GenerateIndicator());
+            }
+            return string.Join('\n', systemInfoValues);
+        }
 
-            return new FetchSnapshot(notifyText, menuText, CalculateInterval(cpuInfo, gpuInfo, memoryInfo));
+        private FetchSnapshot? BuildFetchSnapshot(
+            SpeedSource currentSpeedSource,
+            TemperatureUnit currentTemperatureUnit,
+            FPSMaxLimit currentFpsMaxLimit,
+            bool isMenuOpen,
+            bool doHeavySlice,
+            bool needsCpuTick,
+            bool needsGpuTick
+        )
+        {
+            lock (repositoryLock)
+            {
+                if (isDisposed) return null;
+
+                if (needsCpuTick)
+                {
+                    cpuRepository.Update();
+                }
+                if (needsGpuTick)
+                {
+                    gpuRepository.Update();
+                    hasInitialGpuSample = true;
+                }
+
+                if (!doHeavySlice) return null;
+
+                if (gpuRepository.IsAvailable && !needsGpuTick && !hasInitialGpuSample)
+                {
+                    gpuRepository.Update();
+                    hasInitialGpuSample = true;
+                }
+
+                temperatureRepository.Update();
+                if (isMenuOpen || currentSpeedSource == SpeedSource.Memory)
+                {
+                    memoryRepository.Update();
+                }
+                if (isMenuOpen)
+                {
+                    storageRepository.Update();
+                    networkRepository.Update();
+                }
+
+                var cpuInfo = cpuRepository.Get();
+                var gpuInfo = gpuRepository.Get();
+                var memoryInfo = memoryRepository.Get();
+                var temperatureInfo = temperatureRepository.Get();
+
+                var notifyText = GetInfoDescription(
+                    currentSpeedSource,
+                    currentTemperatureUnit,
+                    cpuInfo,
+                    gpuInfo,
+                    memoryInfo,
+                    temperatureInfo
+                );
+
+                string? menuText = isMenuOpen
+                    ? BuildSystemInfoMenuText(
+                        currentTemperatureUnit,
+                        cpuInfo,
+                        gpuInfo,
+                        memoryInfo,
+                        temperatureInfo,
+                        storageRepository.Get(),
+                        networkRepository.Get()
+                    )
+                    : null;
+
+                var interval = CalculateInterval(
+                    currentSpeedSource,
+                    currentFpsMaxLimit,
+                    cpuInfo,
+                    gpuInfo,
+                    memoryInfo
+                );
+
+                return new FetchSnapshot(notifyText, menuText, interval);
+            }
+        }
+
+        private async void OnContextMenuOpening(object? sender, EventArgs e)
+        {
+            if (isDisposed) return;
+            if (Interlocked.Exchange(ref _menuRefreshRunning, 1) == 1) return;
+            try
+            {
+                var currentSpeedSource = speedSource;
+                var currentTemperatureUnit = temperatureUnit;
+                var currentFpsMaxLimit = fpsMaxLimit;
+                var needsCpuSample = currentSpeedSource != SpeedSource.CPU;
+                var needsGpuSample = gpuRepository.IsAvailable && currentSpeedSource != SpeedSource.GPU;
+                var snapshot = await Task.Run(() => BuildFetchSnapshot(
+                    currentSpeedSource,
+                    currentTemperatureUnit,
+                    currentFpsMaxLimit,
+                    isMenuOpen: true,
+                    doHeavySlice: true,
+                    needsCpuTick: needsCpuSample,
+                    needsGpuTick: needsGpuSample
+                ));
+
+                if (!isDisposed && contextMenuManager.IsContextMenuOpen &&
+                    snapshot?.SystemInfoMenuText is string menuText)
+                {
+                    contextMenuManager.SetSystemInfoMenuText(menuText);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"ContextMenu refresh failed: {ex.Message}");
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _menuRefreshRunning, 0);
+            }
         }
 
         private async void FetchTick(object? sender, EventArgs e)
         {
+            if (isDisposed) return;
             if (Interlocked.Exchange(ref _fetchRunning, 1) == 1) return;
             try
             {
-                var snapshot = await Task.Run(BuildFetchSnapshot);
-                if (snapshot is not null)
+                var currentSpeedSource = speedSource;
+                var currentTemperatureUnit = temperatureUnit;
+                var currentFpsMaxLimit = fpsMaxLimit;
+                var isMenuOpen = contextMenuManager.IsContextMenuOpen;
+
+                fetchCounter += 1;
+                var doHeavySlice = fetchCounter >= FETCH_COUNTER_SIZE;
+                if (doHeavySlice)
                 {
-                    contextMenuManager.SetNotifyIconText(snapshot.Value.NotifyText);
+                    fetchCounter = 0;
+                }
+
+                var needsCpuTick = isMenuOpen || currentSpeedSource == SpeedSource.CPU;
+                var needsGpuTick = gpuRepository.IsAvailable && (isMenuOpen || currentSpeedSource == SpeedSource.GPU);
+
+                if (!doHeavySlice && !needsCpuTick && !needsGpuTick)
+                {
+                    return;
+                }
+
+                var snapshot = await Task.Run(() => BuildFetchSnapshot(
+                    currentSpeedSource,
+                    currentTemperatureUnit,
+                    currentFpsMaxLimit,
+                    isMenuOpen,
+                    doHeavySlice,
+                    needsCpuTick,
+                    needsGpuTick
+                ));
+
+                if (isDisposed || snapshot is null) return;
+
+                contextMenuManager.SetNotifyIconText(snapshot.Value.NotifyText);
+                if (snapshot.Value.SystemInfoMenuText is not null)
+                {
                     contextMenuManager.SetSystemInfoMenuText(snapshot.Value.SystemInfoMenuText);
-                    var clampedInterval = Math.Clamp(snapshot.Value.AnimateIntervalMs, 50, 1000);
+                }
+
+                var clampedInterval = Math.Clamp(snapshot.Value.AnimateIntervalMs, 25, 1000);
+                if (animateTimer.Interval != clampedInterval)
+                {
                     animateTimer.Stop();
                     animateTimer.Interval = clampedInterval;
                     animateTimer.Start();
@@ -301,7 +545,7 @@ namespace RunCat365
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex);
+                Debug.WriteLine($"FetchTick failed: {ex.Message}");
             }
             finally
             {
@@ -313,14 +557,24 @@ namespace RunCat365
         {
             if (disposing)
             {
+                isDisposed = true;
                 SystemEvents.UserPreferenceChanged -= UserPreferenceChanged;
+                if (contextMenuManager is not null)
+                {
+                    contextMenuManager.ContextMenuOpening -= OnContextMenuOpening;
+                }
 
                 animateTimer?.Stop();
                 animateTimer?.Dispose();
                 fetchTimer?.Stop();
                 fetchTimer?.Dispose();
 
-                cpuRepository?.Close();
+                lock (repositoryLock)
+                {
+                    cpuRepository?.Close();
+                    gpuRepository?.Close();
+                    temperatureRepository?.Close();
+                }
 
                 contextMenuManager?.HideNotifyIcon();
                 contextMenuManager?.Dispose();

@@ -117,7 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Menu_Runners" xml:space="preserve">
+  <data name="Menu_Runner" xml:space="preserve">
     <value>Corredor</value>
   </data>
   <data name="Menu_Theme" xml:space="preserve">
@@ -138,8 +138,8 @@
   <data name="Menu_Information" xml:space="preserve">
     <value>Información</value>
   </data>
-  <data name="Menu_OpenRepository" xml:space="preserve">
-    <value>Abrir Repositorio</value>
+  <data name="Menu_OpenProjectPage" xml:space="preserve">
+    <value>Abrir página del proyecto</value>
   </data>
   <data name="Menu_Exit" xml:space="preserve">
     <value>Salir</value>
@@ -152,6 +152,18 @@
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>Oscuro</value>
+  </data>
+  <data name="Menu_TemperatureUnit" xml:space="preserve">
+    <value>Unidad de temperatura</value>
+  </data>
+  <data name="TemperatureUnit_System" xml:space="preserve">
+    <value>Sistema</value>
+  </data>
+  <data name="TemperatureUnit_Celsius" xml:space="preserve">
+    <value>Celsius</value>
+  </data>
+  <data name="TemperatureUnit_Fahrenheit" xml:space="preserve">
+    <value>Fahrenheit</value>
   </data>
   <data name="Runner_Cat" xml:space="preserve">
     <value>Gato</value>
@@ -170,9 +182,6 @@
   </data>
   <data name="Window_EndlessGame" xml:space="preserve">
     <value>Juego Sin Fin</value>
-  </data>
-  <data name="Game_Score" xml:space="preserve">
-    <value>Puntuación</value>
   </data>
   <data name="Game_PressSpaceToPlay" xml:space="preserve">
     <value>Presiona espacio para jugar.</value>
@@ -234,10 +243,61 @@
   <data name="Menu_SpeedSource" xml:space="preserve">
     <value>Velocidad basada en</value>
   </data>
-  <data name="Game_HighScore" xml:space="preserve">
-    <value>Mejor Puntaje</value>
-  </data>
   <data name="Game_NewRecord" xml:space="preserve">
     <value>Nuevo Récord</value>
+  </data>
+  <data name="SystemInfo_Temperature" xml:space="preserve">
+    <value>Temperatura</value>
+  </data>
+  <data name="SystemInfo_TemperatureCelsiusFormat" xml:space="preserve">
+    <value>{0:f1}°C</value>
+  </data>
+  <data name="SystemInfo_TemperatureFahrenheitFormat" xml:space="preserve">
+    <value>{0:f1}°F</value>
+  </data>
+  <data name="Menu_CustomRunners" xml:space="preserve">
+    <value>Runners personalizados...</value>
+  </data>
+  <data name="Window_CustomRunners" xml:space="preserve">
+    <value>Runners personalizados</value>
+  </data>
+  <data name="CustomRunner_AddedRunners" xml:space="preserve">
+    <value>Runners personalizados:</value>
+  </data>
+  <data name="CustomRunner_Name" xml:space="preserve">
+    <value>Nombre del runner:</value>
+  </data>
+  <data name="CustomRunner_AddFrames" xml:space="preserve">
+    <value>Añadir fotogramas...</value>
+  </data>
+  <data name="CustomRunner_RemoveFrame" xml:space="preserve">
+    <value>Eliminar fotograma</value>
+  </data>
+  <data name="CustomRunner_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="CustomRunner_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="CustomRunner_Requirements" xml:space="preserve">
+    <value>Formato: PNG | Dimensiones máx: 32x32px</value>
+  </data>
+  <data name="CustomRunner_ConfirmOverwrite" xml:space="preserve">
+    <value>Ya existe un runner con este nombre. ¿Sobrescribir?</value>
+  </data>
+  <data name="CustomRunner_ConfirmDelete" xml:space="preserve">
+    <value>¿Eliminar runner "{0}"?</value>
+  </data>
+  <data name="CustomRunner_RequirementsLabel" xml:space="preserve">
+    <value>Requisitos:</value>
+  </data>
+  <data name="CustomRunner_FramesLabel" xml:space="preserve">
+    <value>Fotogramas:</value>
+  </data>
+  <data name="CustomRunner_Preview" xml:space="preserve">
+    <value>Vista previa:</value>
+  </data>
+  <data name="CustomRunner_PreviewSpeed" xml:space="preserve">
+    <value>Velocidad de vista previa:</value>
   </data>
 </root>

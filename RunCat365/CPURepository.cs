@@ -47,33 +47,72 @@ namespace RunCat365
 
     internal class CPUPerformanceCounters
     {
+        private const string PROCESSOR_INFORMATION_CATEGORY = "Processor Information";
+        private const string PROCESSOR_CATEGORY = "Processor";
+        private const string TOTAL_INSTANCE = "_Total";
+        private const string PROCESSOR_UTILITY_COUNTER = "% Processor Utility";
+        private const string PROCESSOR_TIME_COUNTER = "% Processor Time";
+        private const string USER_TIME_COUNTER = "% User Time";
+        private const string PRIVILEGED_TIME_COUNTER = "% Privileged Time";
+        private const int PROCESSOR_TIME_BASED_TASK_MANAGER_MINIMUM_BUILD = 26100;
+
         internal PerformanceCounter Total { get; }
         internal PerformanceCounter User { get; }
         internal PerformanceCounter Kernel { get; }
-        internal PerformanceCounter Idle { get; }
 
-        private CPUPerformanceCounters()
+        private CPUPerformanceCounters(
+            PerformanceCounter total,
+            PerformanceCounter user,
+            PerformanceCounter kernel)
         {
-            Total = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-            User = new PerformanceCounter("Processor", "% User Time", "_Total");
-            Kernel = new PerformanceCounter("Processor", "% Privileged Time", "_Total");
-            Idle = new PerformanceCounter("Processor", "% Idle Time", "_Total");
-
-            // Discards first return value
-            _ = Total.NextValue();
-            _ = User.NextValue();
-            _ = Kernel.NextValue();
-            _ = Idle.NextValue();
+            Total = total;
+            User = user;
+            Kernel = kernel;
         }
 
         internal static CPUPerformanceCounters? TryCreate()
         {
+            return TryCreateFromCategory(PROCESSOR_INFORMATION_CATEGORY, TOTAL_INSTANCE)
+                ?? TryCreateFromCategory(PROCESSOR_CATEGORY, TOTAL_INSTANCE);
+        }
+
+        private static bool TaskManagerUsesProcessorTime()
+        {
+            return PROCESSOR_TIME_BASED_TASK_MANAGER_MINIMUM_BUILD <= Environment.OSVersion.Version.Build;
+        }
+
+        private static CPUPerformanceCounters? TryCreateFromCategory(string categoryName, string instanceName)
+        {
+            PerformanceCounter? total = null;
+            PerformanceCounter? user = null;
+            PerformanceCounter? kernel = null;
+            if (!TaskManagerUsesProcessorTime())
+            {
+                try
+                {
+                    total = new PerformanceCounter(categoryName, PROCESSOR_UTILITY_COUNTER, instanceName);
+                }
+                catch
+                {
+                    total?.Close();
+                    total = null;
+                }
+            }
             try
             {
-                return new CPUPerformanceCounters();
+                total ??= new PerformanceCounter(categoryName, PROCESSOR_TIME_COUNTER, instanceName);
+                user = new PerformanceCounter(categoryName, USER_TIME_COUNTER, instanceName);
+                kernel = new PerformanceCounter(categoryName, PRIVILEGED_TIME_COUNTER, instanceName);
+                _ = total.NextValue();
+                _ = user.NextValue();
+                _ = kernel.NextValue();
+                return new CPUPerformanceCounters(total, user, kernel);
             }
             catch
             {
+                total?.Close();
+                user?.Close();
+                kernel?.Close();
                 return null;
             }
         }
@@ -83,15 +122,16 @@ namespace RunCat365
             Total.Close();
             User.Close();
             Kernel.Close();
-            Idle.Close();
         }
     }
 
     internal class CPURepository
     {
         private readonly CPUPerformanceCounters? counters;
-        private readonly List<CPUInfo> cpuInfoList = [];
         private const int CPU_INFO_LIST_LIMIT_SIZE = 5;
+        private readonly CPUInfo[] samples = new CPUInfo[CPU_INFO_LIST_LIMIT_SIZE];
+        private int sampleIndex;
+        private int sampleCount;
 
         internal bool IsAvailable => counters is not null;
 
@@ -104,31 +144,48 @@ namespace RunCat365
         {
             if (counters is null) return;
 
-            var cpuInfo = new CPUInfo
+            var total = Math.Min(100, counters.Total.NextValue());
+            var user = Math.Min(100, counters.User.NextValue());
+            var kernel = Math.Min(100, counters.Kernel.NextValue());
+            var idle = Math.Max(0, 100 - user - kernel);
+
+            samples[sampleIndex] = new CPUInfo
             {
-                Total = Math.Min(100, counters.Total.NextValue()),
-                User = Math.Min(100, counters.User.NextValue()),
-                Kernel = Math.Min(100, counters.Kernel.NextValue()),
-                Idle = Math.Min(100, counters.Idle.NextValue()),
+                Total = total,
+                User = user,
+                Kernel = kernel,
+                Idle = idle,
             };
 
-            cpuInfoList.Add(cpuInfo);
-            if (CPU_INFO_LIST_LIMIT_SIZE < cpuInfoList.Count)
+            sampleIndex = (sampleIndex + 1) % CPU_INFO_LIST_LIMIT_SIZE;
+            if (sampleCount < CPU_INFO_LIST_LIMIT_SIZE)
             {
-                cpuInfoList.RemoveAt(0);
+                sampleCount++;
             }
         }
 
         internal CPUInfo Get()
         {
-            if (cpuInfoList.Count == 0) return new CPUInfo();
+            if (sampleCount == 0) return new CPUInfo();
+
+            float total = 0f;
+            float user = 0f;
+            float kernel = 0f;
+            float idle = 0f;
+            for (int i = 0; i < sampleCount; i++)
+            {
+                total += samples[i].Total;
+                user += samples[i].User;
+                kernel += samples[i].Kernel;
+                idle += samples[i].Idle;
+            }
 
             return new CPUInfo
             {
-                Total = cpuInfoList.Average(x => x.Total),
-                User = cpuInfoList.Average(x => x.User),
-                Kernel = cpuInfoList.Average(x => x.Kernel),
-                Idle = cpuInfoList.Average(x => x.Idle)
+                Total = total / sampleCount,
+                User = user / sampleCount,
+                Kernel = kernel / sampleCount,
+                Idle = idle / sampleCount
             };
         }
 

@@ -66,30 +66,11 @@ namespace RunCat365.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to High Score.
-        /// </summary>
-        internal static string Game_HighScore
-        {
-            get
-            {
-                return ResourceManager.GetString("Game_HighScore", resourceCulture);
-            }
-        }
-        /// <summary>
         ///   Looks up a localized string similar to Press space to play..
         /// </summary>
         internal static string Game_PressSpaceToPlay {
             get {
                 return ResourceManager.GetString("Game_PressSpaceToPlay", resourceCulture);
-            }
-        }
-
-        /// <summary>
-        ///   Looks up a localized string similar to Score.
-        /// </summary>
-        internal static string Game_Score {
-            get {
-                return ResourceManager.GetString("Game_Score", resourceCulture);
             }
         }
 
@@ -149,20 +130,20 @@ namespace RunCat365.Properties {
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Open Repository.
+        ///   Looks up a localized string similar to Open Project Page.
         /// </summary>
-        internal static string Menu_OpenRepository {
+        internal static string Menu_OpenProjectPage {
             get {
-                return ResourceManager.GetString("Menu_OpenRepository", resourceCulture);
+                return ResourceManager.GetString("Menu_OpenProjectPage", resourceCulture);
             }
         }
 
         /// <summary>
-        ///   Looks up a localized string similar to Runners.
+        ///   Looks up a localized string similar to Runner.
         /// </summary>
-        internal static string Menu_Runners {
+        internal static string Menu_Runner {
             get {
-                return ResourceManager.GetString("Menu_Runners", resourceCulture);
+                return ResourceManager.GetString("Menu_Runner", resourceCulture);
             }
         }
 
@@ -412,6 +393,138 @@ namespace RunCat365.Properties {
         internal static string SystemInfo_Maximum {
             get {
                 return ResourceManager.GetString("SystemInfo_Maximum", resourceCulture);
+            }
+        }
+
+        internal static string SystemInfo_Temperature {
+            get {
+                return ResourceManager.GetString("SystemInfo_Temperature", resourceCulture);
+            }
+        }
+
+        internal static string SystemInfo_TemperatureCelsiusFormat {
+            get {
+                return ResourceManager.GetString("SystemInfo_TemperatureCelsiusFormat", resourceCulture);
+            }
+        }
+
+        internal static string SystemInfo_TemperatureFahrenheitFormat {
+            get {
+                return ResourceManager.GetString("SystemInfo_TemperatureFahrenheitFormat", resourceCulture);
+            }
+        }
+
+        internal static string Menu_CustomRunners {
+            get {
+                return ResourceManager.GetString("Menu_CustomRunners", resourceCulture);
+            }
+        }
+
+        internal static string Window_CustomRunners {
+            get {
+                return ResourceManager.GetString("Window_CustomRunners", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_AddedRunners {
+            get {
+                return ResourceManager.GetString("CustomRunner_AddedRunners", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_Name {
+            get {
+                return ResourceManager.GetString("CustomRunner_Name", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_AddFrames {
+            get {
+                return ResourceManager.GetString("CustomRunner_AddFrames", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_RemoveFrame {
+            get {
+                return ResourceManager.GetString("CustomRunner_RemoveFrame", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_Save {
+            get {
+                return ResourceManager.GetString("CustomRunner_Save", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_Delete {
+            get {
+                return ResourceManager.GetString("CustomRunner_Delete", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_Requirements {
+            get {
+                return ResourceManager.GetString("CustomRunner_Requirements", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_ConfirmOverwrite {
+            get {
+                return ResourceManager.GetString("CustomRunner_ConfirmOverwrite", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_ConfirmDelete {
+            get {
+                return ResourceManager.GetString("CustomRunner_ConfirmDelete", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_RequirementsLabel {
+            get {
+                return ResourceManager.GetString("CustomRunner_RequirementsLabel", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_FramesLabel {
+            get {
+                return ResourceManager.GetString("CustomRunner_FramesLabel", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_Preview {
+            get {
+                return ResourceManager.GetString("CustomRunner_Preview", resourceCulture);
+            }
+        }
+
+        internal static string CustomRunner_PreviewSpeed {
+            get {
+                return ResourceManager.GetString("CustomRunner_PreviewSpeed", resourceCulture);
+            }
+        }
+
+        internal static string Menu_TemperatureUnit {
+            get {
+                return ResourceManager.GetString("Menu_TemperatureUnit", resourceCulture);
+            }
+        }
+
+        internal static string TemperatureUnit_System {
+            get {
+                return ResourceManager.GetString("TemperatureUnit_System", resourceCulture);
+            }
+        }
+
+        internal static string TemperatureUnit_Celsius {
+            get {
+                return ResourceManager.GetString("TemperatureUnit_Celsius", resourceCulture);
+            }
+        }
+
+        internal static string TemperatureUnit_Fahrenheit {
+            get {
+                return ResourceManager.GetString("TemperatureUnit_Fahrenheit", resourceCulture);
             }
         }
     }

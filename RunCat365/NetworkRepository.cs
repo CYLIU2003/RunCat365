@@ -13,6 +13,7 @@
 //    limitations under the License.
 
 using RunCat365.Properties;
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 
 namespace RunCat365
@@ -42,26 +43,35 @@ namespace RunCat365
 
     internal class NetworkRepository
     {
-        private readonly NetworkInterface networkInterface;
+        private readonly NetworkInterface? networkInterface;
         private long lastSent;
         private long lastReceived;
-        private DateTime lastUpdate;
-        private NetworkInfo networkInfo;
+        private long lastUpdateTimestamp;
+        private NetworkInfo? networkInfo;
+
+        internal bool IsAvailable => networkInterface is not null;
 
         internal NetworkRepository()
         {
-            networkInterface = GetActiveNetworkInterface()
-                ?? throw new InvalidOperationException("No valid network interface found.");
+            networkInterface = GetActiveNetworkInterface();
+            if (networkInterface is null) return;
             var stats = networkInterface.GetIPStatistics();
             lastSent = stats.BytesSent;
             lastReceived = stats.BytesReceived;
-            lastUpdate = DateTime.UtcNow;
+            lastUpdateTimestamp = Stopwatch.GetTimestamp();
         }
 
         private static NetworkInterface? GetActiveNetworkInterface()
         {
-            var interfaces = NetworkInterface.GetAllNetworkInterfaces();
-            return interfaces.FirstOrDefault(IsValidNetworkInterface);
+            try
+            {
+                var interfaces = NetworkInterface.GetAllNetworkInterfaces();
+                return interfaces.FirstOrDefault(IsValidNetworkInterface);
+            }
+            catch (NetworkInformationException)
+            {
+                return null;
+            }
         }
 
         private static bool IsValidNetworkInterface(NetworkInterface networkInterface)
@@ -70,33 +80,45 @@ namespace RunCat365
             if (networkInterface.NetworkInterfaceType == NetworkInterfaceType.Tunnel) return false;
             if (networkInterface.OperationalStatus != OperationalStatus.Up) return false;
 
-            var description = networkInterface.Description.ToLower();
-            if (description.Contains("vpn")) return false;
-            if (description.Contains("tap")) return false;
-            if (description.Contains("virtual")) return false;
-            if (description.Contains("tun")) return false;
+            var description = networkInterface.Description;
+            if (description.Contains("vpn", StringComparison.OrdinalIgnoreCase)) return false;
+            if (description.Contains("tap", StringComparison.OrdinalIgnoreCase)) return false;
+            if (description.Contains("virtual", StringComparison.OrdinalIgnoreCase)) return false;
+            if (description.Contains("tun", StringComparison.OrdinalIgnoreCase)) return false;
 
             return true;
         }
 
         internal void Update()
         {
-            var stats = networkInterface.GetIPStatistics();
-            var now = DateTime.UtcNow;
-            var elapsedSec = (now - lastUpdate).TotalSeconds;
-            if (elapsedSec > 0)
+            if (networkInterface is null) return;
+            try
             {
-                networkInfo.SentSpeed = (float)((stats.BytesSent - lastSent) / elapsedSec);
-                networkInfo.ReceivedSpeed = (float)((stats.BytesReceived - lastReceived) / elapsedSec);
+                var stats = networkInterface.GetIPStatistics();
+                var nowTimestamp = Stopwatch.GetTimestamp();
+                var elapsedSec = Stopwatch.GetElapsedTime(lastUpdateTimestamp, nowTimestamp).TotalSeconds;
+                if (elapsedSec > 0)
+                {
+                    var sentDelta = Math.Max(0L, stats.BytesSent - lastSent);
+                    var receivedDelta = Math.Max(0L, stats.BytesReceived - lastReceived);
+                    networkInfo = new NetworkInfo
+                    {
+                        SentSpeed = (float)(sentDelta / elapsedSec),
+                        ReceivedSpeed = (float)(receivedDelta / elapsedSec)
+                    };
+                }
+                lastSent = stats.BytesSent;
+                lastReceived = stats.BytesReceived;
+                lastUpdateTimestamp = nowTimestamp;
             }
-            lastSent = stats.BytesSent;
-            lastReceived = stats.BytesReceived;
-            lastUpdate = now;
+            catch (NetworkInformationException)
+            {
+                networkInfo = null;
+            }
         }
 
-        internal NetworkInfo Get()
+        internal NetworkInfo? Get()
         {
-            Update();
             return networkInfo;
         }
     }

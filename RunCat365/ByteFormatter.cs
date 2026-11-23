@@ -16,17 +16,18 @@ namespace RunCat365
 {
     internal static class ByteFormatter
     {
+        private static readonly string[] Units = ["B", "KB", "MB", "GB", "TB"];
+
         internal static string ToByteFormatted(this long bytes)
         {
-            string[] units = ["B", "KB", "MB", "GB", "TB"];
             int i = 0;
             double doubleBytes = bytes;
-            while (1024 <= doubleBytes && i < units.Length - 1)
+            while (1024 <= doubleBytes && i < Units.Length - 1)
             {
                 doubleBytes /= 1024;
                 i++;
             }
-            return string.Format("{0:0.##} {1}", doubleBytes, units[i]);
+            return $"{doubleBytes:0.##} {Units[i]}";
         }
     }
 }

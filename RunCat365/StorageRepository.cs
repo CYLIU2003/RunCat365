@@ -78,7 +78,9 @@ namespace RunCat365
             {
                 var info = storageInfoList[i];
                 var isLastItem = (i == storageInfoList.Count - 1);
-                var percentage = ((double)info.UsedSpaceSize / info.TotalSize) * 100.0;
+                var percentage = info.TotalSize > 0
+                    ? ((double)info.UsedSpaceSize / info.TotalSize) * 100.0
+                    : 0.0;
                 resultLines.Add(TreeFormatter.CreateNode($"{info.Drive.GetLocalizedString()}: {percentage:f1}%", isLastItem));
                 resultLines.Add(TreeFormatter.CreateNestedNode($"{Strings.SystemInfo_Used}: {info.UsedSpaceSize.ToByteFormatted()}", isLastItem, false));
                 resultLines.Add(TreeFormatter.CreateNestedNode($"{Strings.SystemInfo_Available}: {info.AvailableSpaceSize.ToByteFormatted()}", isLastItem, true));
@@ -100,16 +102,18 @@ namespace RunCat365
             var allDrives = DriveInfo.GetDrives();
             foreach (var driveInfo in allDrives)
             {
-                if (driveInfo.IsReady && DriveExtension.CreateFromString(driveInfo.Name) is Drive drive)
+                if (DriveExtension.CreateFromString(driveInfo.Name) is Drive drive && driveInfo.IsReady)
                 {
                     try
                     {
+                        var totalSize = driveInfo.TotalSize;
+                        var availableFreeSpace = driveInfo.AvailableFreeSpace;
                         var storageInfo = new StorageInfo
                         {
                             Drive = drive,
-                            TotalSize = driveInfo.TotalSize,
-                            AvailableSpaceSize = driveInfo.AvailableFreeSpace,
-                            UsedSpaceSize = driveInfo.TotalSize - driveInfo.AvailableFreeSpace
+                            TotalSize = totalSize,
+                            AvailableSpaceSize = availableFreeSpace,
+                            UsedSpaceSize = totalSize - availableFreeSpace
                         };
                         storageInfoList.Add(storageInfo);
                     }
@@ -123,7 +127,6 @@ namespace RunCat365
 
         internal List<StorageInfo> Get()
         {
-            Update();
             return storageInfoList;
         }
     }

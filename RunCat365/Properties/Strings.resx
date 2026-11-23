@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Menu_Runners" xml:space="preserve">
-    <value>Runners</value>
+  <data name="Menu_Runner" xml:space="preserve">
+    <value>Runner</value>
   </data>
   <data name="Menu_Theme" xml:space="preserve">
     <value>Theme</value>
@@ -138,8 +138,8 @@
   <data name="Menu_Information" xml:space="preserve">
     <value>Information</value>
   </data>
-  <data name="Menu_OpenRepository" xml:space="preserve">
-    <value>Open Repository</value>
+  <data name="Menu_OpenProjectPage" xml:space="preserve">
+    <value>Open Project Page</value>
   </data>
   <data name="Menu_Exit" xml:space="preserve">
     <value>Exit</value>
@@ -152,6 +152,18 @@
   </data>
   <data name="Theme_Dark" xml:space="preserve">
     <value>Dark</value>
+  </data>
+  <data name="Menu_TemperatureUnit" xml:space="preserve">
+    <value>Temperature Unit</value>
+  </data>
+  <data name="TemperatureUnit_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="TemperatureUnit_Celsius" xml:space="preserve">
+    <value>Celsius</value>
+  </data>
+  <data name="TemperatureUnit_Fahrenheit" xml:space="preserve">
+    <value>Fahrenheit</value>
   </data>
   <data name="Runner_Cat" xml:space="preserve">
     <value>Cat</value>
@@ -170,9 +182,6 @@
   </data>
   <data name="Window_EndlessGame" xml:space="preserve">
     <value>Endless Game</value>
-  </data>
-  <data name="Game_Score" xml:space="preserve">
-    <value>Score</value>
   </data>
   <data name="Game_PressSpaceToPlay" xml:space="preserve">
     <value>Press space to play.</value>
@@ -234,10 +243,61 @@
   <data name="Menu_SpeedSource" xml:space="preserve">
     <value>Speed based on</value>
   </data>
-  <data name="Game_HighScore" xml:space="preserve">
-    <value>High Score</value>
-  </data>
   <data name="Game_NewRecord" xml:space="preserve">
     <value>New Record</value>
+  </data>
+  <data name="SystemInfo_Temperature" xml:space="preserve">
+    <value>Temperature</value>
+  </data>
+  <data name="SystemInfo_TemperatureCelsiusFormat" xml:space="preserve">
+    <value>{0:f1}°C</value>
+  </data>
+  <data name="SystemInfo_TemperatureFahrenheitFormat" xml:space="preserve">
+    <value>{0:f1}°F</value>
+  </data>
+  <data name="Menu_CustomRunners" xml:space="preserve">
+    <value>Custom Runners...</value>
+  </data>
+  <data name="Window_CustomRunners" xml:space="preserve">
+    <value>Custom Runners</value>
+  </data>
+  <data name="CustomRunner_AddedRunners" xml:space="preserve">
+    <value>Custom Runners:</value>
+  </data>
+  <data name="CustomRunner_Name" xml:space="preserve">
+    <value>Runner Name:</value>
+  </data>
+  <data name="CustomRunner_AddFrames" xml:space="preserve">
+    <value>Add Frames...</value>
+  </data>
+  <data name="CustomRunner_RemoveFrame" xml:space="preserve">
+    <value>Remove Frame</value>
+  </data>
+  <data name="CustomRunner_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="CustomRunner_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="CustomRunner_Requirements" xml:space="preserve">
+    <value>Format: PNG | Max Dimensions: 32x32px</value>
+  </data>
+  <data name="CustomRunner_ConfirmOverwrite" xml:space="preserve">
+    <value>A runner with this name already exists. Overwrite?</value>
+  </data>
+  <data name="CustomRunner_ConfirmDelete" xml:space="preserve">
+    <value>Delete runner "{0}"?</value>
+  </data>
+  <data name="CustomRunner_RequirementsLabel" xml:space="preserve">
+    <value>Requirements:</value>
+  </data>
+  <data name="CustomRunner_FramesLabel" xml:space="preserve">
+    <value>Frames:</value>
+  </data>
+  <data name="CustomRunner_Preview" xml:space="preserve">
+    <value>Preview:</value>
+  </data>
+  <data name="CustomRunner_PreviewSpeed" xml:space="preserve">
+    <value>Preview Speed:</value>
   </data>
 </root>

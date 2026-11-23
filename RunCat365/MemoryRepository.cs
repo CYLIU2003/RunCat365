@@ -47,6 +47,7 @@ namespace RunCat365
 
     internal partial class MemoryRepository
     {
+        private static readonly uint MemoryStatusExSize = (uint)Marshal.SizeOf<MemoryStatusEx>();
         private MemoryInfo memoryInfo;
 
         internal MemoryRepository()
@@ -56,8 +57,10 @@ namespace RunCat365
 
         internal void Update()
         {
-            var memStatus = new MemoryStatusEx();
-            memStatus.dwLength = (uint)Marshal.SizeOf(memStatus);
+            var memStatus = new MemoryStatusEx
+            {
+                dwLength = MemoryStatusExSize
+            };
 
             if (GlobalMemoryStatusEx(ref memStatus))
             {
@@ -70,7 +73,6 @@ namespace RunCat365
 
         internal MemoryInfo Get()
         {
-            Update();
             return memoryInfo;
         }
 

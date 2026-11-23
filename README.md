@@ -8,12 +8,12 @@
 > - We do not accept issues or pull requests in languages other than English.
 > - Issues that do not follow the Issue Template will be closed without question.
 
-[![Github issues](https://img.shields.io/github/issues/Kyome22/RunCat365)](https://github.com/Kyome22/RunCat365/issues)
-[![Github forks](https://img.shields.io/github/forks/Kyome22/RunCat365)](https://github.com/Kyome22/RunCat365/network/members)
-[![Github stars](https://img.shields.io/github/stars/Kyome22/RunCat365)](https://github.com/Kyome22/RunCat365/stargazers)
-[![Top language](https://img.shields.io/github/languages/top/Kyome22/RunCat365)](https://github.com/Kyome22/RunCat365/)
-[![Release](https://img.shields.io/github/v/release/Kyome22/RunCat365)]()
-[![Github license](https://img.shields.io/github/license/Kyome22/RunCat365)](https://github.com/Kyome22/RunCat365/)
+[![Issues](https://img.shields.io/github/issues/runcat-dev/RunCat365)](https://github.com/runcat-dev/RunCat365/issues)
+[![Forks](https://img.shields.io/github/forks/runcat-dev/RunCat365)](https://github.com/runcat-dev/RunCat365/network/members)
+[![Stars](https://img.shields.io/github/stars/runcat-dev/RunCat365)](https://github.com/runcat-dev/RunCat365/stargazers)
+[![Top Language](https://img.shields.io/github/languages/top/runcat-dev/RunCat365)](https://github.com/runcat-dev/RunCat365/)
+[![Releases](https://img.shields.io/github/v/release/runcat-dev/RunCat365)](https://github.com/runcat-dev/RunCat365/releases)
+[![License](https://img.shields.io/github/license/runcat-dev/RunCat365)](https://github.com/runcat-dev/RunCat365/)
 
 `C#` `Win32` `.NET 9.0` `Visual Studio` `RunCat`
 
@@ -21,9 +21,11 @@
 
 <img src="./docs/images/demo.gif" width="600" height="200" alt="demo" />
 <br/>
-<img src="./docs/images/overview.png" width="600" height="343" alt="overview" />
+<img src="./docs/images/overview.png" width="600" height="600" alt="overview" />
 <br/>
-<img src="./docs/images/endless_game.png" width="600" height="343" alt="endless game" />
+<img src="./docs/images/custom_runner.png" width="600" height="467" alt="overview" />
+<br/>
+<img src="./docs/images/endless_game.png" width="600" height="375" alt="endless game" />
 
 ## Installation
 
@@ -31,10 +33,27 @@ RunCat 365 is available for installation on the Microsoft Store.
 
 - Requirement: Windows 10 version 19041.0 or higher
 - Microsoft Store: https://apps.microsoft.com/detail/9nw5lpnvwfwj
-- Language: English, Japanese, Spanish
+- Language:
+  - Chinese (simplified)
+  - Chinese (traditional)
+  - English (default)
+  - French
+  - German
+  - Japanese
+  - Korean
+  - Spanish
+
+## RunCat Developers' Community
+
+This is a space for RunCat contributors to communicate closely regarding development and operations.
+We welcome anyone interested in contributing to RunCat.
+However, please note that this is a place for discussing features, not for submitting requests.
+For requests, please create an Issue according to the template.
+
+Portal: https://runcat-dev.github.io
 
 ## Contributors
 
-<a href="https://github.com/Kyome22/RunCat365/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Kyome22/RunCat365" />
+<a href="https://github.com/runcat-dev/RunCat365/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=runcat-dev/RunCat365" />
 </a>

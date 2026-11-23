@@ -1,8 +1,8 @@
 #define MyAppName     "RunCat 365"
-#define MyAppVersion  "3.2.1"
+#define MyAppVersion  "3.6.0"
 #define MyAppExeName  "RunCat 365.exe"
 #define MyAppID       "B7E4C891-3A12-4F9D-B2C8-5D91E4A7F630"
-#define SrcDir        "..\publish"
+#define SrcDir        "..\RunCat365\bin\portable-win-x64"
 #define IconFile      "..\RunCat365\resources\app_icon.ico"
 
 [Setup]
@@ -33,6 +33,7 @@ Name: "startup"; Description: "Windows 起動時に自動的に起動する"; Gr
 
 [Files]
 Source: "{#SrcDir}\RunCat 365.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SrcDir}\RunCat 365.dll.config"; DestDir: "{app}"; Flags: ignoreversion
 
 [Registry]
 Root: HKCU; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; \
